@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace XIIFactors\AzureFunctions\EventListener;
 
-use JsonException;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\Exception\JsonException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 
