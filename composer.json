@@ -1,0 +1,36 @@
+{
+    "name": "xiifactors/azure-functions-bundle",
+    "description": "Simplify running a Symfony app using Azure Functions",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require": {
+        "php": ">=8.1",
+        "ext-ctype": "*",
+        "ext-iconv": "*",
+        "phpdocumentor/reflection-docblock": "^5.3",
+        "phpstan/phpdoc-parser": "^1.23",
+        "symfony/console": "6.3.*",
+        "symfony/dotenv": "6.3.*",
+        "symfony/flex": "^2",
+        "symfony/framework-bundle": "6.3.*",
+        "symfony/property-access": "6.3.*",
+        "symfony/property-info": "6.3.*",
+        "symfony/runtime": "6.3.*",
+        "symfony/serializer": "6.3.*",
+        "symfony/twig-bundle": "6.3.*",
+        "symfony/validator": "6.3.*",
+        "symfony/yaml": "6.3.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\AzureFunctionsBundle": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "App\\AzureFunctionsBundle\\Tests\\": "tests/"
+        }
+    }
+}
