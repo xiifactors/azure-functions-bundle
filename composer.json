@@ -25,12 +25,24 @@
     },
     "autoload": {
         "psr-4": {
-            "App\\AzureFunctionsBundle\\": "src/"
+            "XIIFactors\\AzureFunctions\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "App\\AzureFunctionsBundle\\Tests\\": "tests/"
+            "XIIFactors\\AzureFunctions\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "symfony/flex": true,
+            "symfony/runtime": true
+        }
+    },
+    "scripts": {
+        "auto-scripts": {
+            "cache:clear": "symfony-cmd",
+            "assets:install %PUBLIC_DIR%": "symfony-cmd"
         }
     }
 }
