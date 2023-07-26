@@ -44,5 +44,11 @@
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd"
         }
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^1.10",
+        "phpunit/phpunit": "^10.2",
+        "squizlabs/php_codesniffer": "^3.7",
+        "dg/bypass-finals": "^1.4"
     }
 }
