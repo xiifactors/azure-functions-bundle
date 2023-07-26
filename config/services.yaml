@@ -16,8 +16,6 @@ services:
     XIIFactors\AzureFunctions\:
         resource: '@AzureFunctionsBundle/src/'
         exclude:
-            - '@AzureFunctionsBundle/src/DependencyInjection/'
-            - '@AzureFunctionsBundle/src/Entity/'
             - '@AzureFunctionsBundle/src/Kernel.php'
 
     # add more service definitions when explicit configuration is needed
