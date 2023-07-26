@@ -4,18 +4,17 @@ declare(strict_types=1);
 
 namespace XIIFactors\AzureFunctions\EventListener;
 
-use JsonException;
-use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\Exception\JsonException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 
 /**
  * Converts the default azure functions response, for when
- * "enableForwardingHttpRequest" is set to true in host.json. 
- * 
- * Otherwise the clients will receive the default response 
+ * "enableForwardingHttpRequest" is set to true in host.json.
+ *
+ * Otherwise the clients will receive the default response
  * structure like so:
- * 
+ *
  * <code>
  *   [
  *     'Outputs' => [...],
@@ -23,7 +22,7 @@ use Symfony\Component\HttpKernel\Event\ResponseEvent;
  *     'ReturnValue' => [...],
  *   ]
  * </code>
- * 
+ *
  * You can disable this behaviour by setting the request header
  * "X-Convert-Response" to "0".
  */
@@ -34,10 +33,6 @@ class ConvertResponseListener
     public const JSON_MIME_TYPES = [
         'application/json'
     ];
-
-    public function __construct(private readonly LoggerInterface $logger)
-    {
-    }
 
     public function onKernelResponse(ResponseEvent $event): void
     {
@@ -70,7 +65,7 @@ class ConvertResponseListener
             return;
         }
 
-        // Ignore if the response is not json-decodable
+        // Ignore if the response is not potentially json-decodable
         if (is_string($response->getContent()) === false) {
             return;
         }

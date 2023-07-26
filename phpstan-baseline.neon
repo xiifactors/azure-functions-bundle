@@ -1,0 +1,21 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Anonymous function has invalid return type App\\\\Kernel\\.$#"
+			count: 1
+			path: public/index.php
+
+		-
+			message: "#^Instantiated class App\\\\Kernel not found\\.$#"
+			count: 1
+			path: public/index.php
+
+		-
+			message: "#^Call to method handle\\(\\) on an unknown class App\\\\Kernel\\.$#"
+			count: 1
+			path: src/Controller/HttpEntrypointController.php
+
+		-
+			message: "#^Instantiated class App\\\\Kernel not found\\.$#"
+			count: 1
+			path: src/Controller/HttpEntrypointController.php

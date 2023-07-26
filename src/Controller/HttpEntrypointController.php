@@ -47,13 +47,19 @@ class HttpEntrypointController extends AbstractController
         } catch (Throwable $e) {
             return new JsonResponse(new ResponseDto(
                 ReturnValue: [
-                    'status' => $e instanceof HttpExceptionInterface ? $e->getStatusCode() : Response::HTTP_INTERNAL_SERVER_ERROR,
+                    'status' => $e instanceof HttpExceptionInterface
+                        ? $e->getStatusCode()
+                        : Response::HTTP_INTERNAL_SERVER_ERROR,
                     'body' => $this->buildError($e),
                 ],
             ));
         }
     }
 
+    /**
+     * @param array<string, mixed> $functionData
+     * @return Response
+     */
     private function makeInternalHttpRequest(
         array $functionData,
     ): Response {
@@ -72,17 +78,21 @@ class HttpEntrypointController extends AbstractController
         $request->headers->add($headers);
 
         $kernel = new Kernel(
-            $this->getParameter('kernel.environment'), 
+            $this->getParameter('kernel.environment'),
             $this->getParameter('kernel.debug')
         );
 
         return $kernel->handle($request, HttpKernelInterface::SUB_REQUEST, false);
     }
 
+    /**
+     * @param Throwable $e
+     * @return array<string, mixed>
+     */
     private function buildError(Throwable $e): array
     {
         $this->logger->error($e->getMessage(), ['exception' => $e]);
-        
+
         if ($this->getParameter('kernel.debug') === true) {
             return [
                 'message' => $e->getMessage(),
