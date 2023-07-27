@@ -79,8 +79,8 @@ imports:
 This repo includes example `host.json` and `local.settings.json` files (suffixed with `.example`). Run the following from a terminal to copy into your project:
 
 ```bash
-cp host.json.example host.json
-cp local.settings.json.example local.settings.json
+cp vendor/xiifactors/azure-functions-bundle/host.json.example host.json
+cp vendor/xiifactors/azure-functions-bundle/local.settings.json.example local.settings.json
 ```
 
 ### Step 6: Create the Azure Function HTTP Entrypoint
