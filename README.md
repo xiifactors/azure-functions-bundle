@@ -1,29 +1,13 @@
 Prereqs
 =============
-- Git
-- Azure Functions Core Tools
--- `brew install azure-functions-core-tools@4`
+- [Composer](https://getcomposer.org/doc/00-intro.md)
+- [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=linux%2Cportal%2Cv2%2Cbash&pivots=programming-language-csharp#install-the-azure-functions-core-tools)
+     
+  If using Homebrew you can run: `brew install azure-functions-core-tools@4`
 ----------------------------------------
 
 Installation
 -------------
-
-Make sure Composer is installed globally, as explained in the
-[installation chapter](https://getcomposer.org/doc/00-intro.md)
-of the Composer documentation.
-
-Applications that use Symfony Flex
-----------------------------------
-
-Open a command console, enter your project directory and execute:
-
-```console
-$ composer require xiifactors/azure-functions-bundle
-```
-
-Applications that don't use Symfony Flex
-----------------------------------------
-
 
 ### Step 1: Download the Bundle
 
@@ -74,20 +58,23 @@ imports:
 
 ```
 
-### Step 5: Add host.json and local.settings.json
+### Step 5: Copy over required files
 
-This repo includes example `host.json` and `local.settings.json` files (suffixed with `.example`). Run the following from a terminal to copy into your project:
+This repo includes example `host.json` and `local.settings.json` files (suffixed with `.example`), as well as a bash script (`run.sh`) that has a one-liner to execute the PHP webserver with the correct env vars.
+
+Run the following in a terminal from the root of your project:
 
 ```bash
 cp vendor/xiifactors/azure-functions-bundle/host.json.example host.json
 cp vendor/xiifactors/azure-functions-bundle/local.settings.json.example local.settings.json
+cp vendor/xiifactors/azure-functions-bundle/run.sh .
 ```
 
 ### Step 6: Create the Azure Function HTTP Entrypoint
 
 In the root of the project create a directory named `HttpEntrypoint`.
 
-Inside this directory create a function.json file with the following contents:
+Inside this directory create a `function.json` file with the following contents:
 
 ```json
 // HttpEntrypoint/functions.json
@@ -101,7 +88,7 @@ Inside this directory create a function.json file with the following contents:
             "type": "httpTrigger",
             "direction": "in",
             "route": "{path}",
-            "methods": ["GET", "POST"]
+            "methods": ["GET", "POST", "PUT", "PATCH", "DELETE"]
         },
         {
             "name": "$return",
@@ -115,7 +102,7 @@ Inside this directory create a function.json file with the following contents:
 
 ### Step 7: Create your first controller
 
-You can use the `ResponseDto` to help with formatting the response:
+You must use the `ResponseDto` to help with formatting the response:
 
 ```php
 // src/Controller/HealthController.php
@@ -170,3 +157,13 @@ and receive:
     "success": true
 }
 ```
+
+## enableForwardingHttpRequest
+
+This is a flag set in the `host.json` file for the custom handler. Our `host.json.example` has it enabled by default.
+
+If this flag is false it mean that the Azure Function host will send a POST request to the URI `/{NameOfFunction}` including the details about the request (route, method, body, etc) in the request body of that POST request. In this instance it is the job of `HttpEntrypointController` to process that request and then send an internal request to the desired route.
+
+But if the flag is set to true, it means that the function host will simply forward the original request onto our application. This bundle includes a `ConvertResponseListener` (which will be enabled when you import the services - described in Step 4.) that will seamlessly handle both scenarios.
+
+**NOTE: When the flag is true it will improve performance, but be aware that the forwarding will only happen if the function is defined with an HTTP trigger "in" binding, and an HTTP "out" binding. If there are any additional bindings the request will not be forwarded and the behaviour reverts to that as if the flag is false** - See the [official documentation](https://learn.microsoft.com/en-us/azure/azure-functions/functions-custom-handlers#http-only-function).
