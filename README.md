@@ -74,7 +74,16 @@ imports:
 
 ```
 
-### Step 5: Create the Azure Function HTTP Entrypoint
+### Step 5: Add host.json and local.settings.json
+
+This repo includes example `host.json` and `local.settings.json` files (suffixed with `.example`). Run the following from a terminal to copy into your project:
+
+```bash
+cp host.json.example host.json
+cp local.settings.json.example local.settings.json
+```
+
+### Step 6: Create the Azure Function HTTP Entrypoint
 
 In the root of the project create a directory named `HttpEntrypoint`.
 
@@ -104,10 +113,60 @@ Inside this directory create a function.json file with the following contents:
 
 ```
 
-### Step 6: Start the function
+### Step 7: Create your first controller
+
+You can use the `ResponseDto` to help with formatting the response:
+
+```php
+// src/Controller/HealthController.php
+
+namespace App\Controller;
+
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+use XIIFactors\AzureFunctions\Dto\ResponseDto;
+
+#[
+    Route(
+        path: '/api/health',
+        name: 'myapp.health',
+        defaults: ['_format' => 'json'],
+        methods: ['GET'],
+    )
+]
+class HealthController extends AbstractController
+{
+    public function __invoke(): Response
+    {
+        return new JsonResponse(new ResponseDto(
+            ReturnValue: json_encode([
+                'success' => true,
+            ])
+        ));
+    }
+}
+```
+
+### Step 8: Start the function
 
 Run the following in your terminal:
 
 ```bash
 func start
+```
+
+You should now be able to run the following curl request locally:
+
+```bash
+curl -vvv http://localhost:7071/api/health
+```
+
+and receive:
+
+```json
+{
+    "success": true
+}
 ```

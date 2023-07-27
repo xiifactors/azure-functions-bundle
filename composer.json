@@ -3,6 +3,13 @@
     "description": "Simplify running a Symfony app using Azure Functions",
     "type": "symfony-bundle",
     "license": "MIT",
+    "keywords": ["azure", "functions", "serverless"],
+    "authors": [
+        {
+            "name": "Ben Bleach",
+            "email": "support@xiifactors.com"
+        }
+    ],
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
@@ -37,12 +44,6 @@
         "allow-plugins": {
             "symfony/flex": true,
             "symfony/runtime": true
-        }
-    },
-    "scripts": {
-        "auto-scripts": {
-            "cache:clear": "symfony-cmd",
-            "assets:install %PUBLIC_DIR%": "symfony-cmd"
         }
     },
     "require-dev": {

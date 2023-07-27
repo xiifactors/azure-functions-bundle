@@ -1,0 +1,7 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "APP_ENV": "dev",
+    "APP_DEBUG": true
+  }
+}
