@@ -162,8 +162,222 @@ and receive:
 
 This is a flag set in the `host.json` file for the custom handler. Our `host.json.example` has it enabled by default.
 
-If this flag is false it mean that the Azure Function host will send a POST request to the URI `/{NameOfFunction}` including the details about the request (route, method, body, etc) in the request body of that POST request. In this instance it is the job of `HttpEntrypointController` to process that request and then send an internal request to the desired route.
+If this flag is false it mean that the Azure Function host will send a POST request to the URI `/{NameOfFunction}` (e.g. `/HttpEntrypoint`) including all details of the original request (like URI, method, params, etc) in the body. In this instance it is the job of `HttpEntrypointController` to process that request and then send an internal request to the desired route.
 
 But if the flag is set to true, it means that the function host will simply forward the original request onto our application. This bundle includes a `ConvertResponseListener` (which will be enabled when you import the services - described in Step 4.) that will seamlessly handle both scenarios.
 
 **NOTE: When the flag is true it will improve performance, but be aware that the forwarding will only happen if the function is defined with an HTTP trigger "in" binding, and an HTTP "out" binding. If there are any additional bindings the request will not be forwarded and the behaviour reverts to that as if the flag is false** - See the [official documentation](https://learn.microsoft.com/en-us/azure/azure-functions/functions-custom-handlers#http-only-function).
+
+
+## Output Bindings
+
+The following example shows a function that receives an HTTP request and then uses an output binding to write a message to a queue. In this example you need to set the `Outputs` property of the `ResponseDto` object.
+
+**Note: This will mean that `enableForwardingHttpRequest` will be nullified even if it is set to `true`, as we have defined an extra binding.**
+
+The `function.json`:
+
+```json
+// ./Example/function.json
+
+{
+  "disabled": false,
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "route": "example"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "$return"
+    },
+    {
+      "type": "queue",
+      "direction": "out",
+      "name": "exampleItem",
+      "queueName": "example-queue",
+      "connection": "AzureWebJobsStorage"
+    }
+  ]
+}
+```
+
+The controller:
+
+```php
+// src/Controller/ExampleController.php
+
+namespace App\Controller;
+
+use Psr\Log\LoggerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+use XIIFactors\AzureFunctions\Dto\ResponseDto;
+
+#[
+    Route(
+        path: '/api/example',
+        name: 'myapp.output_example',
+        defaults: ['_format' => 'json'],
+        methods: ['POST'],
+    )
+]
+class ExampleController extends AbstractController
+{
+    public function __invoke(): Response
+    {
+        return new JsonResponse(new ResponseDto(
+            // Sends the message to the "example" queue via the "exampleItem" output binding
+            Outputs: ['exampleItem' => json_encode(['subject' => 'example'])],
+            ReturnValue: json_encode([
+                'success' => true,
+            ])
+        ));
+    }
+}
+```
+
+## Input Bindings
+
+If you are only dealing with HTTP then you will just create controllers like the `HealthController` above.
+
+If you need to deal with other types of input, then it will be similar but note that the function host will POST to the name of the function, and the details of the input will be included in the request body. You can use the `RequestDto` to map the request data if you want.
+
+The `function.json`:
+
+```json
+// ./QueueFunction/function.json
+
+{
+    "disabled": false,
+    "bindings": [
+        {
+            "type": "queueTrigger",
+            "direction": "in",
+            "name": "exampleItem",
+            "queueName": "example"
+        },
+        {
+            "type": "blob",
+            "direction": "out",
+            "name": "outputBlob",
+            "path": "example/{rand-guid}"
+        }
+    ]
+}
+```
+
+The controller:
+
+```php
+// src/Controller/QueueFunctionController.php
+
+namespace App\Controller;
+
+use RuntimeException;
+use Psr\Log\LoggerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\Routing\Annotation\Route;
+use XIIFactors\AzureFunctions\Dto\RequestDto;
+use XIIFactors\AzureFunctions\Dto\ResponseDto;
+
+#[
+    Route(
+        path: '/QueueFunction',
+        name: 'myapp.input_example',
+        defaults: ['_format' => 'json'],
+        methods: ['POST'],
+    )
+]
+class QueueFunctionController extends AbstractController
+{
+    public function __invoke(#[MapRequestPayload] RequestDto $rd): Response
+    {
+        // Grab the queue item
+        $queueItem = $rd->Data['exampleItem'] ?? throw new RuntimeException('Queue item is missing');
+
+        // Do something with queue item...
+        $decoded = json_decode($queueItem, true);
+
+        // Write queue item to blob storage
+        return new JsonResponse(new ResponseDto(
+            Outputs: ['outputBlob' => $queueItem]
+        ));
+    }
+}
+```
+
+## Deploying the function to Azure
+
+There is more than one way to deploy the PHP function, the method offered here is to create a Docker image and then update the function app to use that image instead of its default one.
+
+### 1. Create the Dockerfile:
+
+```dockerfile
+# ./Dockerfile
+
+FROM mcr.microsoft.com/azure-functions/dotnet:4-appservice 
+ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
+    AzureFunctionsJobHost__Logging__Console__IsEnabled=true
+
+# Install PHP 8.1
+RUN apt -y install lsb-release apt-transport-https ca-certificates 
+RUN wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
+RUN echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php.list
+RUN apt update && apt install php8.1 php8.1-xml -y
+
+# Get Composer
+COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
+
+# Copy codebase into web root
+COPY . /home/site/wwwroot
+
+# Install composer deps and the bundle public/bundles/azurefunctions/index.php (see run.sh)
+RUN cd /home/site/wwwroot && \
+    composer install -o --no-scripts && \
+    bin/console assets:install
+```
+
+### 2. Build and push the image to your ACR (Azure Container Registry)
+
+```bash
+az login --identity
+az acr login --name {YOUR_ACR_NAME}
+
+az acr build \
+  --registry {YOUR_REGISTRY_ID} \
+  --image {YOUR_REGISTRY_ID}.azurecr.io/examplefunction:{YOUR_IMAGE_TAG}
+```  
+
+### 3. Add any necessary environment variables to the function app
+
+```bash
+az login --identity
+
+az functionapp config appsettings set \
+  --resource-group {YOUR_RESOURCE_GROUP} \
+  --name {YOUR_FUNCTION_NAME} \
+  --settings APP_ENV=${APP_ENV} APP_DEBUG=${APP_DEBUG}
+```
+
+### 4. Deploy the new image
+
+```bash
+az login --identity
+
+az functionapp config container set \
+  --resource-group {YOUR_RESOURCE_GROUP} \
+  --name {YOUR_FUNCTION_NAME} \
+  --image {YOUR_REGISTRY_ID}.azurecr.io/examplefunction:{YOUR_IMAGE_TAG}
+```
+
+Within a couple of minutes the image should have been updated and new function deployed.
